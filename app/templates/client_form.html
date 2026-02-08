@@ -49,14 +49,16 @@
 
 {% block scripts %}
 <script>
+// 儲存原始 Email（重要！）
+let originalEmail = '{% if client %}{{ client.email }}{% endif %}';
+
 // Email 遮罩功能
 {% if client %}
 window.addEventListener('DOMContentLoaded', function() {
     const emailInput = document.getElementById('email');
-    const originalEmail = emailInput.value;
     
-    if (originalEmail) {
-        // 初始化時顯示遮罩
+    if (originalEmail && !originalEmail.includes('***')) {
+        // 只有原始 Email 不含遮罩時才進行遮罩
         maskEmailInput(originalEmail);
     }
 });
@@ -77,14 +79,17 @@ function toggleEmailEdit() {
         emailInput.select();
         btn.textContent = '鎖定';
         btn.style.background = '#ca3c3c';
-        // 清空遮罩，讓用戶輸入
-        if (emailInput.value.includes('***')) {
-            emailInput.value = '{{ client.email }}';
-        }
+        // 恢復原始 Email
+        emailInput.value = originalEmail;
     } else {
         emailInput.setAttribute('readonly', 'readonly');
         btn.textContent = '編輯';
         btn.style.background = '';
+        // 重新遮罩（但不影響 originalEmail）
+        if (!emailInput.value.includes('***')) {
+            originalEmail = emailInput.value; // 更新原始值
+        }
+        maskEmailInput(originalEmail);
     }
 }
 {% endif %}
@@ -92,10 +97,16 @@ function toggleEmailEdit() {
 document.getElementById('clientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const emailInput = document.getElementById('email');
+    // 如果是編輯模式，使用當前輸入值；如果是遮罩狀態，使用原始值
+    const emailValue = emailInput.hasAttribute('readonly') && emailInput.value.includes('***') 
+        ? originalEmail 
+        : emailInput.value;
+    
     const formData = {
         client_name: document.getElementById('client_name').value,
         project_name: document.getElementById('project_name').value,
-        email: document.getElementById('email').value,
+        email: emailValue,
         project_cost: parseInt(document.getElementById('project_cost').value)
     };
     

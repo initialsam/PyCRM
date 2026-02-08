@@ -43,7 +43,10 @@
 
     <!-- 客戶列表 -->
     <div class="client-list">
-        <h2>客戶列表</h2>
+        <div class="list-header">
+            <h2>客戶列表</h2>
+            <span class="sort-info">📅 排序：最後修改時間（新→舊）</span>
+        </div>
         {% if clients %}
         <table class="pure-table pure-table-bordered pure-table-striped" style="width: 100%;">
             <thead>
@@ -53,6 +56,7 @@
                     <th>專案名稱</th>
                     <th>Email</th>
                     <th>專案費用</th>
+                    <th>最後修改</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -67,6 +71,14 @@
                         <button class="pure-button button-small toggle-email" onclick="toggleEmail(this)">顯示</button>
                     </td>
                     <td>NT$ {{ "{:,}".format(client.project_cost) }}</td>
+                    <td class="time-cell">
+                        {% if client.updated_at %}
+                        <span class="updated-badge">已更新</span>
+                        <small>{{ client.updated_at.strftime('%m/%d %H:%M') }}</small>
+                        {% else %}
+                        <small class="created-time">{{ client.created_at.strftime('%m/%d %H:%M') }}</small>
+                        {% endif %}
+                    </td>
                     <td>
                         <a href="/client/{{ client.id }}/edit" class="pure-button pure-button-primary button-small">編輯</a>
                         <button onclick="deleteClient({{ client.id }})" class="pure-button button-error button-small">刪除</button>

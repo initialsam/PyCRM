@@ -94,9 +94,44 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.client-list h2 {
-    margin-top: 0;
+.client-list .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1em;
+}
+
+.client-list .list-header h2 {
+    margin: 0;
     color: #333;
+}
+
+.sort-info {
+    font-size: 0.9em;
+    color: #666;
+    background: #f0f8ff;
+    padding: 0.5em 1em;
+    border-radius: 4px;
+    border-left: 3px solid #1f8dd6;
+}
+
+.time-cell {
+    white-space: nowrap;
+    font-size: 0.9em;
+}
+
+.updated-badge {
+    display: inline-block;
+    background: #28a745;
+    color: white;
+    padding: 0.2em 0.5em;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-right: 0.3em;
+}
+
+.created-time {
+    color: #999;
 }
 
 .no-data {

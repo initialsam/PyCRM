@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CRM 專案管理系統{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
+    <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body>
+    <div class="header">
+        <div class="home-menu pure-menu pure-menu-horizontal">
+            <a class="pure-menu-heading" href="/">CRM 專案管理系統</a>
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item"><a href="/dashboard" class="pure-menu-link">Dashboard</a></li>
+                <li class="pure-menu-item"><a href="/client/new" class="pure-menu-link">新增客戶</a></li>
+                <li class="pure-menu-item"><a href="/import" class="pure-menu-link">匯入 CSV</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p>© 2026 CRM 專案管理系統</p>
+        </div>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

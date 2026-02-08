@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}匯入 CSV - CRM{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>匯入 CSV 檔案</h1>
+    
+    <div class="import-info">
+        <h3>CSV 格式說明：</h3>
+        <p>請確保您的 CSV 檔案包含以下欄位：</p>
+        <ul>
+            <li>客戶名稱</li>
+            <li>專案名稱</li>
+            <li>email</li>
+            <li>專案費用</li>
+        </ul>
+    </div>
+    
+    <form class="pure-form pure-form-stacked" id="importForm">
+        <fieldset>
+            <label for="csvFile">選擇 CSV 檔案</label>
+            <input type="file" id="csvFile" name="file" accept=".csv" required>
+            
+            <button type="submit" class="pure-button pure-button-primary">上傳並匯入</button>
+            <a href="/dashboard" class="pure-button">取消</a>
+        </fieldset>
+    </form>
+
+    <div id="result" style="display: none; margin-top: 20px;">
+        <div class="alert"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('importForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('請選擇檔案');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/clients/import-csv', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        const resultDiv = document.getElementById('result');
+        const alertDiv = resultDiv.querySelector('.alert');
+        
+        if (response.ok) {
+            alertDiv.className = 'alert alert-success';
+            alertDiv.textContent = result.message;
+            resultDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
+        } else {
+            alertDiv.className = 'alert alert-error';
+            alertDiv.textContent = '匯入失敗：' + (result.detail || '未知錯誤');
+            resultDiv.style.display = 'block';
+        }
+    } catch (error) {
+        alert('發生錯誤：' + error);
+    }
+});
+</script>
+{% endblock %}

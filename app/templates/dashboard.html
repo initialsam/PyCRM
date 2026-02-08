@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - CRM 專案管理系統{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>專案管理 Dashboard</h1>
+    
+    <!-- 統計面板 -->
+    <div class="pure-g stats-panel">
+        <div class="pure-u-1 pure-u-md-1-3">
+            <div class="stat-card">
+                <h3>總客戶數</h3>
+                <p class="stat-number">{{ stats.total_clients }}</p>
+            </div>
+        </div>
+        <div class="pure-u-1 pure-u-md-1-3">
+            <div class="stat-card">
+                <h3>總專案金額</h3>
+                <p class="stat-number">NT$ {{ "{:,}".format(stats.total_amount) }}</p>
+            </div>
+        </div>
+        <div class="pure-u-1 pure-u-md-1-3">
+            <div class="stat-card">
+                <h3>平均專案金額</h3>
+                <p class="stat-number">NT$ {{ "{:,}".format(stats.average_amount) }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜尋表單 -->
+    <div class="search-section">
+        <form class="pure-form" method="get" action="/dashboard">
+            <fieldset>
+                <input type="text" name="search" placeholder="搜尋客戶或專案..." value="{{ search }}" class="pure-input-1-2">
+                <button type="submit" class="pure-button pure-button-primary">搜尋</button>
+                {% if search %}
+                <a href="/dashboard" class="pure-button">清除</a>
+                {% endif %}
+            </fieldset>
+        </form>
+    </div>
+
+    <!-- 客戶列表 -->
+    <div class="client-list">
+        <h2>客戶列表</h2>
+        {% if clients %}
+        <table class="pure-table pure-table-bordered pure-table-striped" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>客戶名稱</th>
+                    <th>專案名稱</th>
+                    <th>Email</th>
+                    <th>專案費用</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td>{{ client.id }}</td>
+                    <td>{{ client.client_name }}</td>
+                    <td>{{ client.project_name }}</td>
+                    <td>{{ client.email }}</td>
+                    <td>NT$ {{ "{:,}".format(client.project_cost) }}</td>
+                    <td>
+                        <a href="/client/{{ client.id }}/edit" class="pure-button pure-button-primary button-small">編輯</a>
+                        <button onclick="deleteClient({{ client.id }})" class="pure-button button-error button-small">刪除</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-data">目前沒有客戶資料</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteClient(clientId) {
+    if (confirm('確定要刪除此客戶嗎？')) {
+        fetch(`/api/clients/${clientId}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => {
+            alert('刪除失敗：' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

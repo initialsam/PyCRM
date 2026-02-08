@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{% if client %}編輯{% else %}新增{% endif %}客戶 - CRM{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% if client %}編輯{% else %}新增{% endif %}客戶</h1>
+    
+    <form class="pure-form pure-form-aligned" id="clientForm">
+        <fieldset>
+            <div class="pure-control-group">
+                <label for="client_name">客戶名稱</label>
+                <input type="text" id="client_name" name="client_name" required 
+                       value="{% if client %}{{ client.client_name }}{% endif %}" 
+                       class="pure-input-1-2">
+            </div>
+
+            <div class="pure-control-group">
+                <label for="project_name">專案名稱</label>
+                <input type="text" id="project_name" name="project_name" required 
+                       value="{% if client %}{{ client.project_name }}{% endif %}" 
+                       class="pure-input-1-2">
+            </div>
+
+            <div class="pure-control-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required 
+                       value="{% if client %}{{ client.email }}{% endif %}" 
+                       class="pure-input-1-2">
+            </div>
+
+            <div class="pure-control-group">
+                <label for="project_cost">專案費用</label>
+                <input type="number" id="project_cost" name="project_cost" required 
+                       value="{% if client %}{{ client.project_cost }}{% endif %}" 
+                       class="pure-input-1-2">
+            </div>
+
+            <div class="pure-controls">
+                <button type="submit" class="pure-button pure-button-primary">儲存</button>
+                <a href="/dashboard" class="pure-button">取消</a>
+            </div>
+        </fieldset>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('clientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+        client_name: document.getElementById('client_name').value,
+        project_name: document.getElementById('project_name').value,
+        email: document.getElementById('email').value,
+        project_cost: parseInt(document.getElementById('project_cost').value)
+    };
+    
+    const url = "{{ action }}";
+    const method = "{{ method }}";
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            alert('儲存成功！');
+            window.location.href = '/dashboard';
+        } else {
+            const error = await response.json();
+            alert('儲存失敗：' + JSON.stringify(error));
+        }
+    } catch (error) {
+        alert('發生錯誤：' + error);
+    }
+});
+</script>
+{% endblock %}

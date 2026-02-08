@@ -10,13 +10,19 @@ from app import crud
 from app.auth import oauth, require_login
 import os
 import logging
+import sys
 
-# 配置日志
+# 配置日志 - 确保输出到 stdout 以便在 Zeabur 中显示
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ],
+    force=True  # 强制重新配置
 )
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 Base.metadata.create_all(bind=engine)
 

@@ -4,13 +4,19 @@ from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
 import os
 import logging
+import sys
 
-# 配置日志
+# 配置日志 - 确保输出到 stdout 以便在 Zeabur 中显示
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ],
+    force=True  # 强制重新配置
 )
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 oauth = OAuth()
 

@@ -113,10 +113,31 @@ python -m uvicorn main:app --reload
 3. 查看日志中的 "白名單內容" 和 "比對結果"
 
 ### 問題 2：看不到日志輸出
+
+#### 本地開發
 **解決方法：**
 1. 確認使用 `uvicorn` 啟動而非背景執行
 2. 設定環境變數：`export PYTHONUNBUFFERED=1`
-3. 使用 Zeabur 部署時，到 Dashboard 查看 Logs
+3. 使用 `--log-level info` 參數
+
+```bash
+source .venv/bin/activate
+export PYTHONUNBUFFERED=1
+uvicorn app.main:app --reload --log-level info
+```
+
+#### Zeabur 部署
+**必須設定環境變數：**
+1. 登入 Zeabur Dashboard
+2. 選擇你的 CRM 服務
+3. 進入 **Variables** 標籤
+4. 新增環境變數：
+   - Key: `PYTHONUNBUFFERED`
+   - Value: `1`
+5. 點擊 **Save** 並 **Redeploy**
+6. 查看 **Runtime Logs**（不是 Build Logs）
+
+**詳細說明請查看：** `ZEABUR_LOGS_SETUP.md`
 
 ### 問題 3：多個 email 設定格式
 **正確格式：**
@@ -129,7 +150,16 @@ ALLOWED_EMAILS=email1@gmail.com, email2@gmail.com, email3@example.com
 ```
 
 ## 修改的檔案
-1. `app/auth.py` - 添加日志配置和驗證日志
-2. `app/main.py` - 添加 OAuth 回調日志
-3. `test_login_log.py` - 測試腳本（新增）
-4. `LOGIN_LOG.md` - 此文件（新增）
+1. `app/auth.py` - 添加日志配置和驗證日志（支援 Zeabur）
+2. `app/main.py` - 添加 OAuth 回調日志（支援 Zeabur）
+3. `Procfile` - 添加 `--log-level info` 參數
+4. `zeabur.json` - 添加 `--log-level info` 參數
+5. `.env.example` - 添加 `PYTHONUNBUFFERED=1` 說明
+6. `test_login_log.py` - 測試腳本（新增）
+7. `LOGIN_LOG.md` - 此文件（新增）
+8. `ZEABUR_LOGS_SETUP.md` - Zeabur 日志設定指南（新增）
+
+## 相關文檔
+- `ZEABUR_LOGS_SETUP.md` - Zeabur 日志設定完整指南
+- `EMAIL_WHITELIST.md` - Email 白名單設定說明
+- `ZEABUR_DEPLOY.md` - Zeabur 部署指南

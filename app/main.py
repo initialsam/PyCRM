@@ -44,21 +44,40 @@ templates = Jinja2Templates(directory="app/templates")
 app.include_router(clients.router)
 app.include_router(emails.router)
 
+def get_redirect_uri(request: Request, callback_name: str, env_var: str = None) -> str:
+    """
+    取得正確的 redirect_uri
+    
+    Args:
+        request: FastAPI Request 物件
+        callback_name: 回調路由名稱（如 'auth_callback'）
+        env_var: 環境變數名稱（如 'OAUTH_REDIRECT_URI'）
+    
+    Returns:
+        正確的 redirect_uri（在 Zeabur 上使用 https）
+    """
+    # 優先使用環境變數
+    if env_var:
+        redirect_uri = os.getenv(env_var)
+        if redirect_uri:
+            return redirect_uri
+    
+    # 自動生成
+    redirect_uri = str(request.url_for(callback_name))
+    
+    # Zeabur 在 proxy 後面，需要使用 https
+    if 'zeabur.app' in str(request.base_url):
+        redirect_uri = redirect_uri.replace('http://', 'https://')
+    
+    return redirect_uri
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/auth/login")
 async def auth_login(request: Request):
-    # 優先使用環境變數設定的 redirect_uri
-    redirect_uri = os.getenv('OAUTH_REDIRECT_URI')
-    
-    # 如果沒有設定，則使用當前請求的 scheme 生成
-    if not redirect_uri:
-        redirect_uri = str(request.url_for('auth_callback'))
-        # Zeabur 在 proxy 後面，需要使用 https
-        if 'zeabur.app' in str(request.base_url):
-            redirect_uri = redirect_uri.replace('http://', 'https://')
+    redirect_uri = get_redirect_uri(request, 'auth_callback', 'OAUTH_REDIRECT_URI')
     
     logger.info(f"啟動 OAuth 流程，redirect_uri: {redirect_uri}")
     logger.info(f"Session ID: {request.session.get('_id', 'no session id')}")
@@ -73,7 +92,11 @@ async def auth_callback(request: Request):
         logger.info(f"Session ID: {request.session.get('_id', 'no session id')}")
         logger.info(f"Session keys: {list(request.session.keys())}")
         
-        token = await oauth.google.authorize_access_token(request)
+        # 必須使用與 authorize_redirect 時相同的 redirect_uri
+        redirect_uri = get_redirect_uri(request, 'auth_callback', 'OAUTH_REDIRECT_URI')
+        logger.info(f"使用的 redirect_uri: {redirect_uri}")
+        
+        token = await oauth.google.authorize_access_token(request, redirect_uri=redirect_uri)
         user = token.get('userinfo')
         
         if user:
@@ -106,15 +129,7 @@ async def logout(request: Request):
 @app.get("/auth/gmail/login")
 async def gmail_auth_login(request: Request):
     """Gmail API 授權登入"""
-    redirect_uri = os.getenv('GMAIL_OAUTH_REDIRECT_URI')
-    
-    if not redirect_uri:
-        # 構建完整的 callback URL
-        # Zeabur 在 proxy 後面，需要使用 https
-        redirect_uri = str(request.url_for('gmail_auth_callback'))
-        # 如果是從 zeabur.app 訪問，強制使用 https
-        if 'zeabur.app' in str(request.base_url):
-            redirect_uri = redirect_uri.replace('http://', 'https://')
+    redirect_uri = get_redirect_uri(request, 'gmail_auth_callback', 'GMAIL_OAUTH_REDIRECT_URI')
     
     logger.info(f"啟動 Gmail API OAuth 流程，redirect_uri: {redirect_uri}")
     
@@ -131,8 +146,13 @@ async def gmail_auth_callback(request: Request):
     try:
         logger.info("開始處理 Gmail OAuth 回調")
         logger.info(f"Callback URL: {request.url}")
+        logger.info(f"Session keys: {list(request.session.keys())}")
         
-        token = await oauth.google_gmail.authorize_access_token(request)
+        # 必須使用與 authorize_redirect 時相同的 redirect_uri
+        redirect_uri = get_redirect_uri(request, 'gmail_auth_callback', 'GMAIL_OAUTH_REDIRECT_URI')
+        logger.info(f"使用的 redirect_uri: {redirect_uri}")
+        
+        token = await oauth.google_gmail.authorize_access_token(request, redirect_uri=redirect_uri)
         
         # 儲存 Gmail token 到 session
         request.session['gmail_token'] = {

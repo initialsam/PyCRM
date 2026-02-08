@@ -92,11 +92,8 @@ async def auth_callback(request: Request):
         logger.info(f"Session ID: {request.session.get('_id', 'no session id')}")
         logger.info(f"Session keys: {list(request.session.keys())}")
         
-        # 必須使用與 authorize_redirect 時相同的 redirect_uri
-        redirect_uri = get_redirect_uri(request, 'auth_callback', 'OAUTH_REDIRECT_URI')
-        logger.info(f"使用的 redirect_uri: {redirect_uri}")
-        
-        token = await oauth.google.authorize_access_token(request, redirect_uri=redirect_uri)
+        # authlib 會從 session 中自動恢復 redirect_uri，不需要明確傳遞
+        token = await oauth.google.authorize_access_token(request)
         user = token.get('userinfo')
         
         if user:
@@ -148,11 +145,8 @@ async def gmail_auth_callback(request: Request):
         logger.info(f"Callback URL: {request.url}")
         logger.info(f"Session keys: {list(request.session.keys())}")
         
-        # 必須使用與 authorize_redirect 時相同的 redirect_uri
-        redirect_uri = get_redirect_uri(request, 'gmail_auth_callback', 'GMAIL_OAUTH_REDIRECT_URI')
-        logger.info(f"使用的 redirect_uri: {redirect_uri}")
-        
-        token = await oauth.google_gmail.authorize_access_token(request, redirect_uri=redirect_uri)
+        # authlib 會從 session 中自動恢復 redirect_uri，不需要明確傳遞
+        token = await oauth.google_gmail.authorize_access_token(request)
         
         # 儲存 Gmail token 到 session
         request.session['gmail_token'] = {

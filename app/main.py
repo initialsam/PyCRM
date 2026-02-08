@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db, engine, Base
 from app.routers import clients, emails
@@ -28,14 +29,21 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CRM 專案管理系統")
 
+# 信任 proxy headers（Zeabur 在 proxy 後面）
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["pycrm.zeabur.app", "*.zeabur.app", "localhost", "127.0.0.1"]
+)
+
 # 配置 Session Middleware - 修復 OAuth state 匹配問題
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SECRET_KEY", "your-secret-key-change-in-production"),
     session_cookie="session",
     max_age=3600,  # 1 hour
-    same_site="lax",  # 允許跨站點但限制，適合 OAuth
-    https_only=False  # 在開發環境設為 False，生產環境應該是 True
+    same_site="none",  # 允許跨站點，OAuth redirect 需要
+    https_only=True,   # Zeabur 使用 HTTPS，必須設為 True
+    path="/"           # 整個網站可用
 )
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -129,6 +137,9 @@ async def gmail_auth_login(request: Request):
     redirect_uri = get_redirect_uri(request, 'gmail_auth_callback', 'GMAIL_OAUTH_REDIRECT_URI')
     
     logger.info(f"啟動 Gmail API OAuth 流程，redirect_uri: {redirect_uri}")
+    logger.info(f"Request headers - Host: {request.headers.get('host')}, X-Forwarded-Proto: {request.headers.get('x-forwarded-proto')}")
+    logger.info(f"Session ID before: {request.session.get('_id', 'no session')}")
+    logger.info(f"Session data before: {dict(request.session)}")
     
     return await oauth.google_gmail.authorize_redirect(
         request, 
@@ -143,6 +154,9 @@ async def gmail_auth_callback(request: Request):
     try:
         logger.info("開始處理 Gmail OAuth 回調")
         logger.info(f"Callback URL: {request.url}")
+        logger.info(f"Request headers - Host: {request.headers.get('host')}, X-Forwarded-Proto: {request.headers.get('x-forwarded-proto')}")
+        logger.info(f"Session ID after: {request.session.get('_id', 'no session')}")
+        logger.info(f"Session data after: {dict(request.session)}")
         logger.info(f"Session keys: {list(request.session.keys())}")
         
         # authlib 會從 session 中自動恢復 redirect_uri，不需要明確傳遞

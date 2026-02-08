@@ -110,7 +110,23 @@ class GmailService:
             try:
                 with open(self.token_path, 'rb') as token:
                     creds = pickle.load(token)
-                    return creds and creds.valid
+                    if not creds:
+                        return False
+                    # 如果憑證有效，直接返回 True
+                    if creds.valid:
+                        return True
+                    # 如果憑證過期但有 refresh_token，嘗試刷新
+                    if creds.expired and creds.refresh_token:
+                        try:
+                            creds.refresh(Request())
+                            # 刷新成功後儲存新憑證
+                            with open(self.token_path, 'wb') as token_file:
+                                pickle.dump(creds, token_file)
+                            return True
+                        except Exception as e:
+                            print(f"Token 刷新失敗: {e}")
+                            return False
+                    return False
             except:
                 return False
         return False

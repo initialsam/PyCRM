@@ -16,6 +16,14 @@
                 <li class="pure-menu-item"><a href="/dashboard" class="pure-menu-link">Dashboard</a></li>
                 <li class="pure-menu-item"><a href="/client/new" class="pure-menu-link">新增客戶</a></li>
                 <li class="pure-menu-item"><a href="/import" class="pure-menu-link">匯入 CSV</a></li>
+                {% if user %}
+                <li class="pure-menu-item" style="margin-left: auto;">
+                    <span class="pure-menu-link" style="cursor: default;">{{ user.name or user.email }}</span>
+                </li>
+                <li class="pure-menu-item">
+                    <a href="/logout" class="pure-menu-link">登出</a>
+                </li>
+                {% endif %}
             </ul>
         </div>
     </div>

@@ -2,41 +2,81 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db, engine, Base
 from app.routers import clients
 from app import crud
+from app.auth import oauth, require_login
 import os
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CRM 專案管理系統")
 
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "your-secret-key-change-in-production"))
+
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 app.include_router(clients.router)
 
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/auth/login")
+async def auth_login(request: Request):
+    redirect_uri = request.url_for('auth_callback')
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/callback")
+async def auth_callback(request: Request):
+    try:
+        token = await oauth.google.authorize_access_token(request)
+        user = token.get('userinfo')
+        if user:
+            request.session['user'] = dict(user)
+        return RedirectResponse(url='/dashboard')
+    except Exception as e:
+        return RedirectResponse(url='/login')
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.pop('user', None)
+    return RedirectResponse(url='/login')
+
 @app.get("/", response_class=HTMLResponse)
-async def root():
+async def root(request: Request):
+    redirect = require_login(request)
+    if redirect:
+        return redirect
     return RedirectResponse(url="/dashboard")
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, search: str = None, db: Session = Depends(get_db)):
+    redirect = require_login(request)
+    if redirect:
+        return redirect
     clients_list = crud.get_clients(db, search=search)
     stats = crud.get_statistics(db)
+    user = request.session.get('user', {})
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
             "clients": clients_list,
             "stats": stats,
-            "search": search or ""
+            "search": search or "",
+            "user": user
         }
     )
 
 @app.get("/client/new", response_class=HTMLResponse)
 async def new_client_form(request: Request):
+    redirect = require_login(request)
+    if redirect:
+        return redirect
     return templates.TemplateResponse(
         "client_form.html",
         {"request": request, "client": None, "action": "/api/clients/", "method": "POST"}
@@ -44,6 +84,9 @@ async def new_client_form(request: Request):
 
 @app.get("/client/{client_id}/edit", response_class=HTMLResponse)
 async def edit_client_form(request: Request, client_id: int, db: Session = Depends(get_db)):
+    redirect = require_login(request)
+    if redirect:
+        return redirect
     client = crud.get_client(db, client_id)
     if not client:
         return RedirectResponse(url="/dashboard")
@@ -54,6 +97,9 @@ async def edit_client_form(request: Request, client_id: int, db: Session = Depen
 
 @app.get("/import", response_class=HTMLResponse)
 async def import_page(request: Request):
+    redirect = require_login(request)
+    if redirect:
+        return redirect
     return templates.TemplateResponse("import_csv.html", {"request": request})
 
 if __name__ == "__main__":

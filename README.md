@@ -11,6 +11,7 @@
 - 🔍 客戶搜尋功能
 - 🔒 **Email 遮罩保護**（新功能）
 - 📅 **智能排序**（按最後修改時間）
+- 🔐 **Google OAuth 登入**（新功能）
 - 📱 響應式設計（Pure CSS）
 
 ## 技術棧
@@ -36,11 +37,16 @@ CREATE DATABASE crm_db;
 
 ### 2. 設定環境變數
 
-編輯 `.env` 檔案，設定資料庫連線：
+編輯 `.env` 檔案，設定資料庫連線和 Google OAuth：
 
 ```
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/crm_db
+GOOGLE_CLIENT_ID=你的-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=你的-google-client-secret
+SECRET_KEY=使用-openssl-rand-hex-32-生成的密鑰
 ```
+
+**Google OAuth 設定**：請參閱 [GOOGLE_LOGIN_SETUP.md](GOOGLE_LOGIN_SETUP.md) 了解如何取得 Google OAuth 憑證。
 
 ### 3. 安裝相依套件
 

@@ -5,10 +5,18 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db, engine, Base
-from app.routers import clients
+from app.routers import clients, emails
 from app import crud
 from app.auth import oauth, require_login
 import os
+import logging
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 Base.metadata.create_all(bind=engine)
 
@@ -20,6 +28,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 app.include_router(clients.router)
+app.include_router(emails.router)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -27,26 +36,43 @@ async def login_page(request: Request):
 
 @app.get("/auth/login")
 async def auth_login(request: Request):
-    redirect_uri = os.getenv('OAUTH_REDIRECT_URI') or str(request.url_for('auth_callback'))
-    if not os.getenv('OAUTH_REDIRECT_URI') and request.url.scheme == 'http':
-        redirect_uri = redirect_uri.replace('http://', 'https://')
+    # 優先使用環境變數設定的 redirect_uri
+    redirect_uri = os.getenv('OAUTH_REDIRECT_URI')
+    
+    # 如果沒有設定，則使用當前請求的 scheme 生成
+    if not redirect_uri:
+        redirect_uri = str(request.url_for('auth_callback'))
+        # 保持原始 scheme（http 或 https）
+    
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/callback")
 async def auth_callback(request: Request):
     try:
+        logger.info("開始處理 OAuth 回調")
         token = await oauth.google.authorize_access_token(request)
         user = token.get('userinfo')
+        
         if user:
             email = user.get('email')
+            name = user.get('name', 'Unknown')
+            logger.info(f"使用者嘗試登入: {name} ({email})")
+            
             if not auth.is_email_allowed(email):
+                logger.warning(f"拒絕登入: {email} 不在 ALLOWED_EMAILS 白名單中")
                 return templates.TemplateResponse("access_denied.html", {
                     "request": request,
                     "email": email
                 })
+            
             request.session['user'] = dict(user)
+            logger.info(f"✓ 登入成功: {name} ({email})")
+        else:
+            logger.error("無法從 token 獲取使用者資訊")
+            
         return RedirectResponse(url='/dashboard')
     except Exception as e:
+        logger.error(f"OAuth 回調發生異常: {type(e).__name__}: {str(e)}", exc_info=True)
         return RedirectResponse(url='/login')
 
 @app.get("/logout")

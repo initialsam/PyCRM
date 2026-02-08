@@ -11,3 +11,9 @@ wheels/
 .env
 client.csv
 /.vs
+
+# Gmail API 憑證（敏感資料，不要上傳）
+credentials.json
+token.pickle
+token.json
+gmail_token.pickle

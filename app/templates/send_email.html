@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}發送郵件 - CRM 系統{% endblock %}
+
+{% block content %}
+<div class="email-send-page">
+    <h1>📧 發送郵件給客戶</h1>
+    
+    <!-- Gmail 授權狀態 -->
+    {% if not is_gmail_auth %}
+    <div class="alert alert-warning">
+        <h4>⚠️ 需要 Gmail API 授權</h4>
+        <p>首次使用需要授權 Gmail API 才能發送郵件。</p>
+        <button type="button" class="pure-button pure-button-primary" onclick="authorizeGmail()">
+            🔐 授權 Gmail API
+        </button>
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        <span>✅ Gmail API 已授權，可以發送郵件</span>
+    </div>
+    {% endif %}
+    
+    <form id="emailForm" class="pure-form pure-form-stacked"{% if not is_gmail_auth %} style="opacity: 0.5; pointer-events: none;"{% endif %}>
+        <!-- 選擇郵件模板 -->
+        <fieldset>
+            <legend>1. 選擇郵件模板</legend>
+            <div class="template-selection">
+                {% for template in templates %}
+                <label class="template-card">
+                    <input type="radio" name="template" value="{{ template.id }}" required>
+                    <div class="template-info">
+                        <h3>{{ template.name }}</h3>
+                        <p class="template-type">類型：
+                            {% if template.template_type == 'invoice' %}
+                            💰 請款單
+                            {% elif template.template_type == 'greeting' %}
+                            🎉 節日問候
+                            {% elif template.template_type == 'promotion' %}
+                            🎁 促銷優惠
+                            {% endif %}
+                        </p>
+                        <p class="template-subject"><strong>主旨：</strong>{{ template.subject }}</p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        <!-- 選擇收件客戶 -->
+        <fieldset>
+            <legend>2. 選擇收件客戶</legend>
+            <div class="client-selection">
+                <div class="selection-controls">
+                    <button type="button" class="pure-button" onclick="selectAll()">全選</button>
+                    <button type="button" class="pure-button" onclick="deselectAll()">取消全選</button>
+                    <span id="selectedCount" class="selected-count">已選擇：0 位客戶</span>
+                </div>
+                
+                <div class="client-list-grid">
+                    {% for client in clients %}
+                    <label class="client-card">
+                        <input type="checkbox" name="clients" value="{{ client.id }}" onchange="updateCount()">
+                        <div class="client-info">
+                            <h4>{{ client.client_name }}</h4>
+                            <p>📧 {{ client.email }}</p>
+                            <p>📁 {{ client.project_name }}</p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- 預覽與發送 -->
+        <fieldset>
+            <legend>3. 確認與發送</legend>
+            <button type="button" class="pure-button pure-button-primary" onclick="previewEmail()">
+                👁️ 預覽郵件
+            </button>
+            <button type="submit" class="pure-button button-success" id="sendButton">
+                📤 發送郵件
+            </button>
+            <a href="/dashboard" class="pure-button">取消</a>
+        </fieldset>
+    </form>
+
+    <!-- 預覽模態框 -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePreview()">&times;</span>
+            <h2>郵件預覽</h2>
+            <div id="previewContent"></div>
+        </div>
+    </div>
+
+    <!-- 發送結果模態框 -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeResult()">&times;</span>
+            <h2>發送結果</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.email-send-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.template-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.template-card {
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: block;
+}
+
+.template-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+}
+
+.template-card input[type="radio"] {
+    display: none;
+}
+
+.template-card input[type="radio"]:checked + .template-info {
+    background: #f0f4ff;
+}
+
+.template-info {
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.template-type {
+    color: #666;
+    font-size: 14px;
+}
+
+.template-subject {
+    color: #333;
+    font-size: 14px;
+}
+
+.client-selection {
+    margin: 15px 0;
+}
+
+.selection-controls {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.selected-count {
+    font-weight: bold;
+    color: #667eea;
+}
+
+.client-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.client-card {
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: block;
+}
+
+.client-card:hover {
+    border-color: #4CAF50;
+}
+
+.client-card input[type="checkbox"]:checked {
+    accent-color: #4CAF50;
+}
+
+.client-card input[type="checkbox"]:checked ~ .client-info {
+    background: #f0fff4;
+}
+
+.client-info h4 {
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.client-info p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 800px;
+    border-radius: 10px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+}
+
+.button-success {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.button-success:hover {
+    background-color: #45a049;
+}
+
+fieldset {
+    margin-bottom: 30px;
+    border: 2px solid #667eea;
+    border-radius: 10px;
+}
+
+legend {
+    font-weight: bold;
+    color: #667eea;
+    padding: 0 10px;
+}
+
+.alert {
+    padding: 1.5em;
+    border-radius: 8px;
+    margin-bottom: 2em;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    color: #856404;
+}
+
+.alert-success {
+    background: #d4edda;
+    border: 2px solid #28a745;
+    color: #155724;
+}
+
+.alert h4 {
+    margin-top: 0;
+}
+</style>
+
+<script>
+let gmailAuthWindow = null;
+
+// Gmail 授權
+function authorizeGmail() {
+    fetch('/gmail/auth-url')
+        .then(response => response.json())
+        .then(data => {
+            // 開啟新視窗進行授權
+            gmailAuthWindow = window.open(
+                data.auth_url,
+                'Gmail 授權',
+                'width=600,height=700'
+            );
+        })
+        .catch(error => {
+            alert('取得授權 URL 失敗：' + error);
+        });
+}
+
+// 監聽授權完成訊息
+window.addEventListener('message', function(event) {
+    if (event.data === 'gmail_auth_success') {
+        location.reload();
+    }
+});
+
+function updateCount() {
+    const checked = document.querySelectorAll('input[name="clients"]:checked').length;
+    document.getElementById('selectedCount').textContent = `已選擇：${checked} 位客戶`;
+}
+
+function selectAll() {
+    document.querySelectorAll('input[name="clients"]').forEach(cb => cb.checked = true);
+    updateCount();
+}
+
+function deselectAll() {
+    document.querySelectorAll('input[name="clients"]').forEach(cb => cb.checked = false);
+    updateCount();
+}
+
+function previewEmail() {
+    const templateId = document.querySelector('input[name="template"]:checked')?.value;
+    if (!templateId) {
+        alert('請先選擇郵件模板');
+        return;
+    }
+    
+    const template = {{ templates | tojson }}.find(t => t.id == templateId);
+    const previewHtml = `
+        <h3>主旨：${template.subject}</h3>
+        <hr>
+        ${template.content.replace(/\{\{(\w+)\}\}/g, '<span style="background: yellow;">[$1]</span>')}
+    `;
+    
+    document.getElementById('previewContent').innerHTML = previewHtml;
+    document.getElementById('previewModal').style.display = 'block';
+}
+
+function closePreview() {
+    document.getElementById('previewModal').style.display = 'none';
+}
+
+function closeResult() {
+    document.getElementById('resultModal').style.display = 'none';
+    location.reload();
+}
+
+document.getElementById('emailForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const templateId = document.querySelector('input[name="template"]:checked')?.value;
+    const clientIds = Array.from(document.querySelectorAll('input[name="clients"]:checked'))
+        .map(cb => parseInt(cb.value));
+    
+    if (!templateId) {
+        alert('請選擇郵件模板');
+        return;
+    }
+    
+    if (clientIds.length === 0) {
+        alert('請至少選擇一位客戶');
+        return;
+    }
+    
+    if (!confirm(`確定要發送郵件給 ${clientIds.length} 位客戶嗎？`)) {
+        return;
+    }
+    
+    const sendButton = document.getElementById('sendButton');
+    sendButton.disabled = true;
+    sendButton.textContent = '發送中...';
+    
+    try {
+        const response = await fetch('/api/emails/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                template_id: parseInt(templateId),
+                client_ids: clientIds
+            })
+        });
+        
+        const result = await response.json();
+        
+        let resultHtml = `
+            <h3>✅ 發送完成</h3>
+            <p>總計：${result.total} 封</p>
+            <p style="color: green;">成功：${result.success_count} 封</p>
+            <p style="color: red;">失敗：${result.failed_count} 封</p>
+            <hr>
+            <h4>詳細結果：</h4>
+            <ul>
+        `;
+        
+        result.results.forEach(r => {
+            const icon = r.success ? '✅' : '❌';
+            const status = r.success ? '成功' : `失敗 (${r.error})`;
+            resultHtml += `<li>${icon} ${r.client_name} (${r.email}) - ${status}</li>`;
+        });
+        
+        resultHtml += '</ul>';
+        
+        document.getElementById('resultContent').innerHTML = resultHtml;
+        document.getElementById('resultModal').style.display = 'block';
+        
+    } catch (error) {
+        alert('發送失敗：' + error.message);
+    } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = '📤 發送郵件';
+    }
+});
+
+// 點擊模態框外部關閉
+window.onclick = function(event) {
+    const previewModal = document.getElementById('previewModal');
+    const resultModal = document.getElementById('resultModal');
+    if (event.target == previewModal) {
+        previewModal.style.display = 'none';
+    }
+    if (event.target == resultModal) {
+        resultModal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

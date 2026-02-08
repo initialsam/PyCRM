@@ -24,3 +24,41 @@ class Client(ClientBase):
 
     class Config:
         from_attributes = True
+
+class EmailTemplateBase(BaseModel):
+    name: str
+    subject: str
+    content: str
+    template_type: str  # invoice, greeting, promotion
+    is_active: bool = True
+
+class EmailTemplateCreate(EmailTemplateBase):
+    pass
+
+class EmailTemplate(EmailTemplateBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class EmailSendRequest(BaseModel):
+    client_ids: list[int]
+    template_id: int
+
+class EmailLogBase(BaseModel):
+    client_id: int
+    client_email: str
+    template_id: Optional[int] = None
+    subject: str
+    status: str = 'pending'
+    error_message: Optional[str] = None
+
+class EmailLog(EmailLogBase):
+    id: int
+    sent_at: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

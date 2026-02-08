@@ -201,6 +201,36 @@ body {
     margin: 0;
 }
 
+/* Email 遮罩樣式 */
+.email-cell {
+    white-space: nowrap;
+}
+
+.masked-email {
+    font-family: 'Courier New', monospace;
+    color: #555;
+    margin-right: 0.5em;
+}
+
+.toggle-email {
+    font-size: 0.75em;
+    padding: 0.3em 0.6em;
+    background: #6c757d;
+    color: white;
+}
+
+.toggle-email:hover {
+    background: #5a6268;
+}
+
+.toggle-email.button-active {
+    background: #28a745;
+}
+
+.toggle-email.button-active:hover {
+    background: #218838;
+}
+
 /* 響應式設計 */
 @media (max-width: 768px) {
     .stat-card {
@@ -215,5 +245,9 @@ body {
         display: block;
         width: 100%;
         margin: 0.2em 0;
+    }
+    
+    .email-cell {
+        white-space: normal;
     }
 }

@@ -62,7 +62,10 @@
                     <td>{{ client.id }}</td>
                     <td>{{ client.client_name }}</td>
                     <td>{{ client.project_name }}</td>
-                    <td>{{ client.email }}</td>
+                    <td class="email-cell" data-email="{{ client.email }}">
+                        <span class="masked-email"></span>
+                        <button class="pure-button button-small toggle-email" onclick="toggleEmail(this)">顯示</button>
+                    </td>
                     <td>NT$ {{ "{:,}".format(client.project_cost) }}</td>
                     <td>
                         <a href="/client/{{ client.id }}/edit" class="pure-button pure-button-primary button-small">編輯</a>
@@ -81,6 +84,42 @@
 
 {% block scripts %}
 <script>
+// Email 遮罩函數
+function maskEmail(email) {
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 3) {
+        return localPart[0] + '***@' + domain;
+    }
+    const visibleStart = localPart.substring(0, 3);
+    return visibleStart + '***@' + domain;
+}
+
+// 初始化所有 email 遮罩
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.email-cell').forEach(cell => {
+        const email = cell.getAttribute('data-email');
+        const maskedSpan = cell.querySelector('.masked-email');
+        maskedSpan.textContent = maskEmail(email);
+    });
+});
+
+// 切換顯示/隱藏 email
+function toggleEmail(button) {
+    const cell = button.closest('.email-cell');
+    const email = cell.getAttribute('data-email');
+    const maskedSpan = cell.querySelector('.masked-email');
+    
+    if (button.textContent === '顯示') {
+        maskedSpan.textContent = email;
+        button.textContent = '隱藏';
+        button.classList.add('button-active');
+    } else {
+        maskedSpan.textContent = maskEmail(email);
+        button.textContent = '顯示';
+        button.classList.remove('button-active');
+    }
+}
+
 function deleteClient(clientId) {
     if (confirm('確定要刪除此客戶嗎？')) {
         fetch(`/api/clients/${clientId}`, {

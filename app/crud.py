@@ -12,6 +12,11 @@ def get_clients(db: Session, skip: int = 0, limit: int = 100, search: Optional[s
             (models.Client.client_name.ilike(f"%{search}%")) |
             (models.Client.project_name.ilike(f"%{search}%"))
         )
+    # 排序：最後修改時間新到舊（updated_at 優先，若為 None 則用 created_at）
+    query = query.order_by(
+        models.Client.updated_at.desc().nullslast(),
+        models.Client.created_at.desc()
+    )
     return query.offset(skip).limit(limit).all()
 
 def create_client(db: Session, client: schemas.ClientCreate):

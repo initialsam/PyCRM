@@ -97,11 +97,12 @@ async def send_emails(
         }
         
         content = gmail_service.render_template(template.content, variables)
+        subject = gmail_service.render_template(template.subject, variables)
         
         # 發送
         result = gmail_service.send_email(
             to=client.email,
-            subject=template.subject,
+            subject=subject,
             message_html=content
         )
         
@@ -110,7 +111,7 @@ async def send_emails(
             client_id=client.id,
             client_email=client.email,
             template_id=template.id,
-            subject=template.subject,
+            subject=subject,
             status='sent' if result['success'] else 'failed',
             error_message=result.get('error'),
             sent_at=datetime.now() if result['success'] else None

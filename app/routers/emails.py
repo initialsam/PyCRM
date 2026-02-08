@@ -29,10 +29,22 @@ async def send_email_page(request: Request, db: Session = Depends(get_db)):
         models.EmailTemplate.is_active == True
     ).all()
     
+    # 轉換為可序列化的字典列表
+    templates_dict = [
+        {
+            "id": t.id,
+            "name": t.name,
+            "subject": t.subject,
+            "content": t.content,
+            "template_type": t.template_type
+        }
+        for t in templates_list
+    ]
+    
     return templates.TemplateResponse("send_email.html", {
         "request": request,
         "clients": clients,
-        "templates": templates_list,
+        "templates": templates_dict,
         "is_gmail_auth": is_gmail_auth
     })
 

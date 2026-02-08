@@ -27,7 +27,9 @@ async def login_page(request: Request):
 
 @app.get("/auth/login")
 async def auth_login(request: Request):
-    redirect_uri = request.url_for('auth_callback')
+    redirect_uri = os.getenv('OAUTH_REDIRECT_URI') or str(request.url_for('auth_callback'))
+    if not os.getenv('OAUTH_REDIRECT_URI') and request.url.scheme == 'http':
+        redirect_uri = redirect_uri.replace('http://', 'https://')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/callback")

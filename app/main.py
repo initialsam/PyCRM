@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db, engine, Base
 from app.routers import clients, emails
-from app import crud
+from app import crud, auth
 from app.auth import oauth, require_login
 import os
 import logging

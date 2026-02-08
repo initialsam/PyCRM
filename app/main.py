@@ -56,7 +56,9 @@ async def auth_login(request: Request):
     # 如果沒有設定，則使用當前請求的 scheme 生成
     if not redirect_uri:
         redirect_uri = str(request.url_for('auth_callback'))
-        # 保持原始 scheme（http 或 https）
+        # Zeabur 在 proxy 後面，需要使用 https
+        if 'zeabur.app' in str(request.base_url):
+            redirect_uri = redirect_uri.replace('http://', 'https://')
     
     logger.info(f"啟動 OAuth 流程，redirect_uri: {redirect_uri}")
     logger.info(f"Session ID: {request.session.get('_id', 'no session id')}")
@@ -108,7 +110,11 @@ async def gmail_auth_login(request: Request):
     
     if not redirect_uri:
         # 構建完整的 callback URL
+        # Zeabur 在 proxy 後面，需要使用 https
         redirect_uri = str(request.url_for('gmail_auth_callback'))
+        # 如果是從 zeabur.app 訪問，強制使用 https
+        if 'zeabur.app' in str(request.base_url):
+            redirect_uri = redirect_uri.replace('http://', 'https://')
     
     logger.info(f"啟動 Gmail API OAuth 流程，redirect_uri: {redirect_uri}")
     

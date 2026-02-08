@@ -130,6 +130,35 @@ MIT License
 
 ---
 
+## 🚀 部署到 Zeabur
+
+本專案已準備好部署到 Zeabur 雲端平台！
+
+### 快速開始
+```bash
+# 檢查部署準備
+./deploy_check.sh
+
+# 查看快速部署指南
+cat DEPLOY_QUICK_START.md
+
+# 問題診斷
+./zeabur_troubleshoot.sh
+```
+
+### 部署檔案
+- ✅ `Dockerfile` - Docker 容器配置
+- ✅ `Procfile` - 啟動命令
+- ✅ `requirements.txt` - Python 依賴
+- ✅ `zeabur.json` - Zeabur 配置
+- ✅ `.env.example` - 環境變數範例
+
+### 詳細文件
+- 📖 [完整部署指南](ZEABUR_DEPLOY.md)
+- 🚀 [快速開始](DEPLOY_QUICK_START.md)
+
+---
+
 ## 🆕 最新功能
 
 ### Email 遮罩保護

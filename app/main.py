@@ -28,7 +28,15 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CRM 專案管理系統")
 
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "your-secret-key-change-in-production"))
+# 配置 Session Middleware - 修復 OAuth state 匹配問題
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY", "your-secret-key-change-in-production"),
+    session_cookie="session",
+    max_age=3600,  # 1 hour
+    same_site="lax",  # 允許跨站點但限制，適合 OAuth
+    https_only=False  # 在開發環境設為 False，生產環境應該是 True
+)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
@@ -50,12 +58,19 @@ async def auth_login(request: Request):
         redirect_uri = str(request.url_for('auth_callback'))
         # 保持原始 scheme（http 或 https）
     
+    logger.info(f"啟動 OAuth 流程，redirect_uri: {redirect_uri}")
+    logger.info(f"Session ID: {request.session.get('_id', 'no session id')}")
+    
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/callback")
 async def auth_callback(request: Request):
     try:
         logger.info("開始處理 OAuth 回調")
+        logger.info(f"Callback URL: {request.url}")
+        logger.info(f"Session ID: {request.session.get('_id', 'no session id')}")
+        logger.info(f"Session keys: {list(request.session.keys())}")
+        
         token = await oauth.google.authorize_access_token(request)
         user = token.get('userinfo')
         

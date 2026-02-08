@@ -18,8 +18,8 @@ async def send_email_page(request: Request, db: Session = Depends(get_db)):
     if login_check:
         return login_check
     
-    # 檢查 Gmail API 是否已授權
-    is_gmail_auth = gmail_service.is_authenticated()
+    # 檢查 Gmail API 是否已授權 (檢查 session 中的 gmail_token)
+    is_gmail_auth = 'gmail_token' in request.session and request.session['gmail_token'] is not None
     
     # 取得所有客戶
     clients = db.query(models.Client).all()
@@ -47,6 +47,14 @@ async def send_emails(
     if login_check:
         raise HTTPException(status_code=401, detail="未登入")
     
+    # 檢查 Gmail token
+    gmail_token = request.session.get('gmail_token')
+    if not gmail_token:
+        raise HTTPException(
+            status_code=401, 
+            detail="Gmail API 未授權，請先完成授權"
+        )
+    
     # 取得模板
     template = db.query(models.EmailTemplate).filter(
         models.EmailTemplate.id == email_request.template_id
@@ -62,6 +70,9 @@ async def send_emails(
     
     if not clients:
         raise HTTPException(status_code=404, detail="找不到選擇的客戶")
+    
+    # 使用 token 設置 Gmail service
+    gmail_service.set_credentials_from_token(gmail_token)
     
     # 發送郵件
     results = []
@@ -81,13 +92,6 @@ async def send_emails(
             subject=template.subject,
             message_html=content
         )
-        
-        # 檢查是否需要授權
-        if result.get('needs_auth'):
-            raise HTTPException(
-                status_code=401, 
-                detail="Gmail API 未授權，請先完成授權"
-            )
         
         # 記錄發送狀態
         log = models.EmailLog(
@@ -309,42 +313,6 @@ async def init_templates(request: Request, db: Session = Depends(get_db)):
         "count": len(default_templates)
     }
 
-@router.get("/gmail/auth-url")
-async def get_gmail_auth_url(request: Request):
-    """取得 Gmail API 授權 URL"""
-    login_check = require_login(request)
-    if login_check:
-        raise HTTPException(status_code=401, detail="未登入")
-    
-    try:
-        auth_url = gmail_service.get_auth_url()
-        return {"auth_url": auth_url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/auth/gmail/callback")
-async def gmail_auth_callback(request: Request, code: str = None, error: str = None):
-    """Gmail OAuth 回調"""
-    if error:
-        return templates.TemplateResponse("gmail_auth_error.html", {
-            "request": request,
-            "error": error
-        })
-    
-    if not code:
-        raise HTTPException(status_code=400, detail="缺少授權碼")
-    
-    try:
-        gmail_service.save_credentials(code)
-        return templates.TemplateResponse("gmail_auth_success.html", {
-            "request": request
-        })
-    except Exception as e:
-        return templates.TemplateResponse("gmail_auth_error.html", {
-            "request": request,
-            "error": str(e)
-        })
-
 @router.get("/gmail/status")
 async def gmail_auth_status(request: Request):
     """檢查 Gmail API 授權狀態"""
@@ -353,5 +321,5 @@ async def gmail_auth_status(request: Request):
         raise HTTPException(status_code=401, detail="未登入")
     
     return {
-        "is_authenticated": gmail_service.is_authenticated()
+        "is_authenticated": 'gmail_token' in request.session and request.session['gmail_token'] is not None
     }

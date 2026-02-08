@@ -33,16 +33,15 @@
         <div class="icon-success">✅</div>
         <h2 class="mb-3">Gmail API 授權成功！</h2>
         <p class="text-muted">您現在可以使用 Gmail API 發送郵件了。</p>
-        <p class="text-muted">系統將自動關閉此視窗...</p>
-        <a href="/send-email" class="btn btn-primary mt-3">前往發送郵件</a>
+        <p class="text-muted">2 秒後將自動跳轉到發送郵件頁面...</p>
+        <a href="/send-email" class="btn btn-primary mt-3">立即前往</a>
     </div>
     
     <script>
-        // 3 秒後自動關閉視窗
+        // 2 秒後自動跳轉到發送郵件頁面
         setTimeout(() => {
-            window.opener?.postMessage('gmail_auth_success', '*');
-            window.close();
-        }, 3000);
+            window.location.href = '/send-email';
+        }, 2000);
     </script>
 </body>
 </html>

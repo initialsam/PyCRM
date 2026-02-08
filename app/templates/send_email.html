@@ -299,19 +299,8 @@ let gmailAuthWindow = null;
 
 // Gmail 授權
 function authorizeGmail() {
-    fetch('/gmail/auth-url')
-        .then(response => response.json())
-        .then(data => {
-            // 開啟新視窗進行授權
-            gmailAuthWindow = window.open(
-                data.auth_url,
-                'Gmail 授權',
-                'width=600,height=700'
-            );
-        })
-        .catch(error => {
-            alert('取得授權 URL 失敗：' + error);
-        });
+    // 直接導向到 Gmail OAuth 授權頁面
+    window.location.href = '/auth/gmail/login';
 }
 
 // 監聽授權完成訊息

@@ -20,6 +20,7 @@ logger.setLevel(logging.INFO)
 
 oauth = OAuth()
 
+# 登入用的 OAuth (只需要基本資訊)
 oauth.register(
     name='google',
     client_id=os.getenv('GOOGLE_CLIENT_ID'),
@@ -27,6 +28,17 @@ oauth.register(
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile'
+    }
+)
+
+# Gmail API 用的 OAuth (需要 gmail.send 權限)
+oauth.register(
+    name='google_gmail',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile https://www.googleapis.com/auth/gmail.send'
     }
 )
 

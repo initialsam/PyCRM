@@ -131,6 +131,22 @@ class GmailService:
                 return False
         return False
     
+    def set_credentials_from_token(self, token_dict: dict):
+        """從 token 字典設置憑證"""
+        try:
+            self.creds = Credentials(
+                token=token_dict.get('access_token'),
+                refresh_token=token_dict.get('refresh_token'),
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=os.getenv('GOOGLE_CLIENT_ID'),
+                client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+                scopes=SCOPES
+            )
+            self.service = build('gmail', 'v1', credentials=self.creds)
+        except Exception as e:
+            print(f"設置憑證失敗: {e}")
+            raise
+    
     def get_auth_url(self) -> str:
         """取得授權 URL"""
         client_config = self._get_client_config()

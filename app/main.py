@@ -101,6 +101,53 @@ async def logout(request: Request):
     request.session.pop('user', None)
     return RedirectResponse(url='/login')
 
+@app.get("/auth/gmail/login")
+async def gmail_auth_login(request: Request):
+    """Gmail API 授權登入"""
+    redirect_uri = os.getenv('GMAIL_OAUTH_REDIRECT_URI')
+    
+    if not redirect_uri:
+        # 構建完整的 callback URL
+        redirect_uri = str(request.url_for('gmail_auth_callback'))
+    
+    logger.info(f"啟動 Gmail API OAuth 流程，redirect_uri: {redirect_uri}")
+    
+    return await oauth.google_gmail.authorize_redirect(
+        request, 
+        redirect_uri,
+        access_type='offline',
+        prompt='consent'
+    )
+
+@app.get("/auth/gmail/callback")
+async def gmail_auth_callback(request: Request):
+    """Gmail API OAuth 回調"""
+    try:
+        logger.info("開始處理 Gmail OAuth 回調")
+        logger.info(f"Callback URL: {request.url}")
+        
+        token = await oauth.google_gmail.authorize_access_token(request)
+        
+        # 儲存 Gmail token 到 session
+        request.session['gmail_token'] = {
+            'access_token': token.get('access_token'),
+            'refresh_token': token.get('refresh_token'),
+            'token_type': token.get('token_type'),
+            'expires_in': token.get('expires_in')
+        }
+        
+        logger.info("✓ Gmail API 授權成功")
+        
+        return templates.TemplateResponse("gmail_auth_success.html", {
+            "request": request
+        })
+    except Exception as e:
+        logger.error(f"Gmail OAuth 回調發生異常: {type(e).__name__}: {str(e)}", exc_info=True)
+        return templates.TemplateResponse("gmail_auth_error.html", {
+            "request": request,
+            "error": str(e)
+        })
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     redirect = require_login(request)

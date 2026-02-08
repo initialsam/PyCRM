@@ -68,14 +68,20 @@ def get_redirect_uri(request: Request, callback_name: str, env_var: str = None) 
     if env_var:
         redirect_uri = os.getenv(env_var)
         if redirect_uri:
+            logger.info(f"使用環境變數 {env_var}: {redirect_uri}")
             return redirect_uri
     
     # 自動生成
     redirect_uri = str(request.url_for(callback_name))
     
-    # Zeabur 在 proxy 後面，需要使用 https
-    if 'zeabur.app' in str(request.base_url):
+    # 檢查是否在 Zeabur 或其他需要 HTTPS 的環境
+    host = request.headers.get('host', '')
+    x_forwarded_proto = request.headers.get('x-forwarded-proto', '')
+    
+    # 如果是 zeabur.app 域名，或者 proxy 指示使用 https，強制使用 https
+    if 'zeabur.app' in host or x_forwarded_proto == 'https':
         redirect_uri = redirect_uri.replace('http://', 'https://')
+        logger.info(f"檢測到 HTTPS 環境，修正 redirect_uri: {redirect_uri}")
     
     return redirect_uri
 

@@ -38,6 +38,12 @@ async def auth_callback(request: Request):
         token = await oauth.google.authorize_access_token(request)
         user = token.get('userinfo')
         if user:
+            email = user.get('email')
+            if not auth.is_email_allowed(email):
+                return templates.TemplateResponse("access_denied.html", {
+                    "request": request,
+                    "email": email
+                })
             request.session['user'] = dict(user)
         return RedirectResponse(url='/dashboard')
     except Exception as e:

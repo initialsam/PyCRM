@@ -16,6 +16,18 @@ oauth.register(
     }
 )
 
+def get_allowed_emails():
+    """取得允許登入的 email 列表"""
+    allowed = os.getenv('ALLOWED_EMAILS', 'helpaction4u@gmail.com')
+    return [email.strip() for email in allowed.split(',')]
+
+def is_email_allowed(email: str) -> bool:
+    """檢查 email 是否在允許的白名單中"""
+    if not email:
+        return False
+    allowed_emails = get_allowed_emails()
+    return email.lower() in [e.lower() for e in allowed_emails]
+
 def get_current_user(request: Request):
     user = request.session.get('user')
     if not user:

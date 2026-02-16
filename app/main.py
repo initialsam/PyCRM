@@ -286,7 +286,7 @@ def scheduled_fetch_rate():
     finally:
         db.close()
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(daemon=True)
 scheduler.add_job(
     scheduled_fetch_rate,
     CronTrigger(hour=8, minute=0, timezone="Asia/Taipei"),
@@ -303,6 +303,11 @@ scheduler.add_job(
 )
 scheduler.start()
 logger.info("✓ APScheduler 已啟動：每日 08:00 / 20:00 (Asia/Taipei) 爬取日幣匯率")
+
+@app.on_event("shutdown")
+def shutdown_scheduler():
+    scheduler.shutdown(wait=False)
+    logger.info("✓ APScheduler 已關閉")
 
 
 if __name__ == "__main__":

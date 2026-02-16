@@ -4,10 +4,13 @@
 """
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 import logging
+
+# 台北時區 UTC+8
+TAIPEI_TZ = timezone(timedelta(hours=8))
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +74,7 @@ def fetch_jpy_rate() -> dict | None:
                 return {
                     "currency": "JPY",
                     "cash_selling": rate_value,
-                    "rate_date": date.today(),
+                    "rate_date": datetime.now(TAIPEI_TZ).date(),
                 }
         
         logger.error("未找到 JPY 匯率資料")
@@ -90,14 +93,14 @@ def fetch_jpy_rate() -> dict | None:
 
 def _get_period() -> str:
     """根據當前時間返回 'morning' 或 'evening'"""
-    return "morning" if datetime.now().hour < 14 else "evening"
+    return "morning" if datetime.now(TAIPEI_TZ).hour < 14 else "evening"
 
 
 def save_rate_to_db(db: Session, rate_data: dict):
     """將匯率資料存入資料庫（一天可存兩筆：早上/晚上）"""
     from app.models import ExchangeRate
 
-    now = datetime.now()
+    now = datetime.now(TAIPEI_TZ)
     period = _get_period()
 
     # 檢查同天同時段是否已有資料，有則更新

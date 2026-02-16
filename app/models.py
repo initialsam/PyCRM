@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float, Date
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -37,3 +37,13 @@ class EmailLog(Base):
     error_message = Column(Text, nullable=True)  # 錯誤訊息
     sent_at = Column(DateTime(timezone=True), nullable=True)  # 發送時間
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ExchangeRate(Base):
+    __tablename__ = "exchange_rates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    currency = Column(String, nullable=False, index=True)  # 幣別代碼 (如 JPY)
+    cash_selling = Column(Float, nullable=False)  # 現金匯率-本行賣出
+    rate_date = Column(Date, nullable=False, index=True)  # 匯率日期
+    period = Column(String, nullable=False, default="morning")  # 時段: morning / evening
+    fetched_at = Column(DateTime(timezone=True), server_default=func.now())  # 爬取時間

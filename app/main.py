@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db, engine, Base
-from app.routers import clients, emails
+from app.routers import clients, emails, exchange_rate as exchange_rate_router
 from app import crud, auth
 from app.auth import oauth, require_login
 import os
@@ -51,6 +51,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 app.include_router(clients.router)
 app.include_router(emails.router)
+app.include_router(exchange_rate_router.router)
 
 def get_redirect_uri(request: Request, callback_name: str, env_var: str = None) -> str:
     """
@@ -203,6 +204,11 @@ async def dashboard(request: Request, search: str = None, db: Session = Depends(
     clients_list = crud.get_clients(db, search=search)
     stats = crud.get_statistics(db)
     user = request.session.get('user', {})
+
+    # 取得最新日幣匯率
+    from app.exchange_rate import get_latest_jpy_rate
+    jpy_rate = get_latest_jpy_rate(db)
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -210,7 +216,8 @@ async def dashboard(request: Request, search: str = None, db: Session = Depends(
             "clients": clients_list,
             "stats": stats,
             "search": search or "",
-            "user": user
+            "user": user,
+            "jpy_rate": jpy_rate,
         }
     )
 
@@ -243,6 +250,45 @@ async def import_page(request: Request):
     if redirect:
         return redirect
     return templates.TemplateResponse("import_csv.html", {"request": request})
+
+# === APScheduler: 每天早上 8:00 + 晚上 20:00 自動爬取日幣匯率 ===
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+def scheduled_fetch_rate():
+    """排程任務：爬取日幣匯率並存入資料庫"""
+    from app.exchange_rate import fetch_and_save
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        success = fetch_and_save(db)
+        if success:
+            logger.info("✓ 排程爬取日幣匯率成功")
+        else:
+            logger.error("✗ 排程爬取日幣匯率失敗")
+    except Exception as e:
+        logger.error(f"排程爬取匯率時發生錯誤: {e}")
+    finally:
+        db.close()
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(
+    scheduled_fetch_rate,
+    CronTrigger(hour=8, minute=0, timezone="Asia/Taipei"),
+    id="fetch_jpy_rate_morning",
+    name="每日早上8點爬取日幣匯率",
+    replace_existing=True,
+)
+scheduler.add_job(
+    scheduled_fetch_rate,
+    CronTrigger(hour=20, minute=0, timezone="Asia/Taipei"),
+    id="fetch_jpy_rate_evening",
+    name="每日晚上8點爬取日幣匯率",
+    replace_existing=True,
+)
+scheduler.start()
+logger.info("✓ APScheduler 已啟動：每日 08:00 / 20:00 (Asia/Taipei) 爬取日幣匯率")
+
 
 if __name__ == "__main__":
     import uvicorn

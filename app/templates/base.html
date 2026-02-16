@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
     <link rel="stylesheet" href="/static/css/custom.css">
 </head>
+
 <body>
     <div class="header">
         <div class="home-menu pure-menu pure-menu-horizontal">
@@ -16,6 +18,7 @@
                 <li class="pure-menu-item"><a href="/dashboard" class="pure-menu-link">Dashboard</a></li>
                 <li class="pure-menu-item"><a href="/client/new" class="pure-menu-link">新增客戶</a></li>
                 <li class="pure-menu-item"><a href="/import" class="pure-menu-link">匯入 CSV</a></li>
+                <li class="pure-menu-item"><a href="/exchange-rate" class="pure-menu-link">💴 日幣匯率</a></li>
                 {% if user %}
                 <li class="pure-menu-item" style="margin-left: auto;">
                     <span class="pure-menu-link" style="cursor: default;">{{ user.name or user.email }}</span>
@@ -42,4 +45,5 @@
 
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

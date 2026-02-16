@@ -5,25 +5,40 @@
 {% block content %}
 <div class="dashboard">
     <h1>專案管理 Dashboard</h1>
-    
+
     <!-- 統計面板 -->
     <div class="pure-g stats-panel">
-        <div class="pure-u-1 pure-u-md-1-3">
+        <div class="pure-u-1 pure-u-md-1-4">
             <div class="stat-card">
                 <h3>總客戶數</h3>
                 <p class="stat-number">{{ stats.total_clients }}</p>
             </div>
         </div>
-        <div class="pure-u-1 pure-u-md-1-3">
+        <div class="pure-u-1 pure-u-md-1-4">
             <div class="stat-card">
                 <h3>總專案金額</h3>
                 <p class="stat-number">NT$ {{ "{:,}".format(stats.total_amount) }}</p>
             </div>
         </div>
-        <div class="pure-u-1 pure-u-md-1-3">
+        <div class="pure-u-1 pure-u-md-1-4">
             <div class="stat-card">
                 <h3>平均專案金額</h3>
                 <p class="stat-number">NT$ {{ "{:,}".format(stats.average_amount) }}</p>
+            </div>
+        </div>
+        <div class="pure-u-1 pure-u-md-1-4">
+            <div class="stat-card" style="border-left: 4px solid #e74c3c;">
+                <h3>💴 日幣現金賣出</h3>
+                {% if jpy_rate %}
+                <p class="stat-number" style="color: #e74c3c;">{{ jpy_rate.cash_selling }}</p>
+                <small style="color: #888;">
+                    {{ jpy_rate.rate_date.strftime('%m/%d') }} 更新
+                    ・<a href="/exchange-rate">歷史查詢</a>
+                </small>
+                {% else %}
+                <p class="stat-number" style="color: #999; font-size: 0.8em;">尚無資料</p>
+                <small><a href="/exchange-rate">前往爬取</a></small>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -82,8 +97,10 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="/client/{{ client.id }}/edit" class="pure-button pure-button-primary button-small">編輯</a>
-                        <button onclick="deleteClient({{ client.id }})" class="pure-button button-error button-small">刪除</button>
+                        <a href="/client/{{ client.id }}/edit"
+                            class="pure-button pure-button-primary button-small">編輯</a>
+                        <button onclick="deleteClient({{ client.id }})"
+                            class="pure-button button-error button-small">刪除</button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -98,56 +115,56 @@
 
 {% block scripts %}
 <script>
-// Email 遮罩函數
-function maskEmail(email) {
-    const [localPart, domain] = email.split('@');
-    if (localPart.length <= 3) {
-        return localPart[0] + '***@' + domain;
+    // Email 遮罩函數
+    function maskEmail(email) {
+        const [localPart, domain] = email.split('@');
+        if (localPart.length <= 3) {
+            return localPart[0] + '***@' + domain;
+        }
+        const visibleStart = localPart.substring(0, 3);
+        return visibleStart + '***@' + domain;
     }
-    const visibleStart = localPart.substring(0, 3);
-    return visibleStart + '***@' + domain;
-}
 
-// 初始化所有 email 遮罩
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.email-cell').forEach(cell => {
+    // 初始化所有 email 遮罩
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.email-cell').forEach(cell => {
+            const email = cell.getAttribute('data-email');
+            const maskedSpan = cell.querySelector('.masked-email');
+            maskedSpan.textContent = maskEmail(email);
+        });
+    });
+
+    // 切換顯示/隱藏 email
+    function toggleEmail(button) {
+        const cell = button.closest('.email-cell');
         const email = cell.getAttribute('data-email');
         const maskedSpan = cell.querySelector('.masked-email');
-        maskedSpan.textContent = maskEmail(email);
-    });
-});
 
-// 切換顯示/隱藏 email
-function toggleEmail(button) {
-    const cell = button.closest('.email-cell');
-    const email = cell.getAttribute('data-email');
-    const maskedSpan = cell.querySelector('.masked-email');
-    
-    if (button.textContent === '顯示') {
-        maskedSpan.textContent = email;
-        button.textContent = '隱藏';
-        button.classList.add('button-active');
-    } else {
-        maskedSpan.textContent = maskEmail(email);
-        button.textContent = '顯示';
-        button.classList.remove('button-active');
+        if (button.textContent === '顯示') {
+            maskedSpan.textContent = email;
+            button.textContent = '隱藏';
+            button.classList.add('button-active');
+        } else {
+            maskedSpan.textContent = maskEmail(email);
+            button.textContent = '顯示';
+            button.classList.remove('button-active');
+        }
     }
-}
 
-function deleteClient(clientId) {
-    if (confirm('確定要刪除此客戶嗎？')) {
-        fetch(`/api/clients/${clientId}`, {
-            method: 'DELETE',
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            location.reload();
-        })
-        .catch(error => {
-            alert('刪除失敗：' + error);
-        });
+    function deleteClient(clientId) {
+        if (confirm('確定要刪除此客戶嗎？')) {
+            fetch(`/api/clients/${clientId}`, {
+                method: 'DELETE',
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    location.reload();
+                })
+                .catch(error => {
+                    alert('刪除失敗：' + error);
+                });
+        }
     }
-}
 </script>
 {% endblock %}

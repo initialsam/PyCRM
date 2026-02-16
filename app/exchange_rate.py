@@ -100,7 +100,7 @@ def save_rate_to_db(db: Session, rate_data: dict):
     """將匯率資料存入資料庫（一天可存兩筆：早上/晚上）"""
     from app.models import ExchangeRate
 
-    now = datetime.now(TAIPEI_TZ)
+    now = datetime.now(timezone.utc)  # DB 存 UTC，前端顯示再轉 UTC+8
     period = _get_period()
 
     # 檢查同天同時段是否已有資料，有則更新

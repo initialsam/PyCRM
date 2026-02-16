@@ -49,6 +49,21 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
+# 自訂 Jinja2 過濾器：UTC → 台北時間 (UTC+8)
+from datetime import timedelta, timezone as dt_timezone
+_TAIPEI_TZ = dt_timezone(timedelta(hours=8))
+
+def _to_taipei(dt_val, fmt="%Y/%m/%d %H:%M"):
+    """將 UTC datetime 轉換為台北時間並格式化"""
+    if dt_val is None:
+        return ""
+    if dt_val.tzinfo is None:
+        # 假設 naive datetime 為 UTC
+        dt_val = dt_val.replace(tzinfo=dt_timezone.utc)
+    return dt_val.astimezone(_TAIPEI_TZ).strftime(fmt)
+
+templates.env.filters["to_taipei"] = _to_taipei
+
 app.include_router(clients.router)
 app.include_router(emails.router)
 app.include_router(exchange_rate_router.router)

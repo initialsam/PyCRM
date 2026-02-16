@@ -16,7 +16,7 @@
                 <small style="color: #888;">
                     📅 {{ latest.rate_date.strftime('%Y/%m/%d') }} {{ '🌅 早上' if latest.period == 'morning' else '🌙 晚上'
                     }}
-                    ・更新時間 {{ latest.fetched_at.strftime('%H:%M') }}
+                    ・更新時間 {{ latest.fetched_at | to_taipei("%H:%M") }}
                 </small>
                 {% else %}
                 <p class="stat-number" style="color: #999;">尚無資料</p>
@@ -65,7 +65,7 @@
                     <td>{{ record.rate_date.strftime('%Y/%m/%d') }}</td>
                     <td>{{ '🌅 早上' if record.period == 'morning' else '🌙 晚上' }}</td>
                     <td style="font-weight: bold; color: #e74c3c;">{{ record.cash_selling }}</td>
-                    <td><small>{{ record.fetched_at.strftime('%Y/%m/%d %H:%M') }}</small></td>
+                    <td><small>{{ record.fetched_at | to_taipei }}</small></td>
                 </tr>
                 {% endfor %}
             </tbody>
